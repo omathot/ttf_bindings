@@ -93,5 +93,12 @@ main :: proc() {
 	family_name := ttf.GetFontFamilyName(font)
 	style_name := ttf.GetFontStyleName(font)
 	fmt.println("family name: ", family_name, " style name: ", style_name)
+
+	solid_text := ttf.render_text_solid(font, "POWER", len("POWER"), {255, 0, 0, 255})
+	if solid_text == nil {
+		fmt.println("Failed to render text_solid")
+		return
+	}
+	assert(solid_text != nil)
 }
 

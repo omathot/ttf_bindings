@@ -22,11 +22,11 @@ FontStyleFlag :: enum Uint32 {
 	UNDERLINE     = 4, /**< Underlined text */
 	STRIKETHROUGH = 8, /**< Strikethrough text */
 }
-STYLE_NORMAL :: FontStyleFlags{.NORMAL}
-STYLE_BOLD :: FontStyleFlags{.BOLD}
-STYLE_ITALIC :: FontStyleFlags{.ITALIC}
-STYLE_UNDERLINE :: FontStyleFlags{.UNDERLINE}
-STYLE_STRIKETHROUGH :: FontStyleFlags{.STRIKETHROUGH}
+STYLE_NORMAL		:: FontStyleFlags{.NORMAL}
+STYLE_BOLD			:: FontStyleFlags{.BOLD}
+STYLE_ITALIC		:: FontStyleFlags{.ITALIC}
+STYLE_UNDERLINE		:: FontStyleFlags{.UNDERLINE}
+STYLE_STRIKETHROUGH	:: FontStyleFlags{.STRIKETHROUGH}
 
 HintingFlags :: enum c.int {
 	INVALID = -1,
@@ -129,6 +129,36 @@ foreign lib {
 	RenderText_Shaded_Wrapped :: proc(font: ^TTF_Font, text: [^]byte, length: c.size_t, fg, bg: sdl.Color, wrap_width: c.int) -> ^sdl.Surface ---
 	RenderGlyph_Shaded :: proc(font: ^TTF_Font, ch: Uint32, fg, bg: sdl.Color) -> ^sdl.Surface ---
 	RenderText_Blended :: proc(font: ^TTF_Font, text: [^]byte, length: c.size_t, fg: sdl.Color) -> ^sdl.Surface ---
-	RenderText_Blended_wrapped :: proc(font: ^TTF_Font, text: [^]byte, length: c.size_t, fg: sdl.Color, wrap_width: c.int) -> ^sdl.Surface ---
+	RenderText_Blended_Wrapped :: proc(font: ^TTF_Font, text: [^]byte, length: c.size_t, fg: sdl.Color, wrap_width: c.int) -> ^sdl.Surface ---
 }
+
+
+// 
+
+
+// odinfmt: disable
+// odin helpers cause [^]byte sucks to work with
+// 
+
+render_text_solid :: proc(font: ^TTF_Font, text: string, length: c.size_t, fg: sdl.Color) -> ^sdl.Surface {
+	return RenderText_Solid(font, raw_data(transmute([]byte)text), length, fg)
+}
+render_text_solid_wrapped :: proc(font: ^TTF_Font, text: string, length: c.size_t, fg: sdl.Color, wrap_length: c.int) -> ^sdl.Surface {
+	return RenderText_Solid_Wrapped(font, raw_data(transmute([]byte)text), length, fg, wrap_length)
+}
+render_text_shaded :: proc(font: ^TTF_Font, text: string, length: c.size_t, fg, bg: sdl.Color) -> ^sdl.Surface {
+	return RenderText_Shaded(font, raw_data(transmute([]byte)text), length, fg, bg)
+}
+render_text_shaded_wrapped :: proc(font: ^TTF_Font, text: string, length: c.size_t, fg, bg: sdl.Color, wrap_width: c.int) -> ^sdl.Surface {
+	return RenderText_Shaded_Wrapped(font, raw_data(transmute([]byte)text), length, fg, bg, wrap_width)
+}
+render_text_blended :: proc(font: ^TTF_Font, text: string, length: c.size_t, fg: sdl.Color) -> ^sdl.Surface {
+	return RenderText_Blended(font, raw_data(transmute([]byte)text), length, fg)
+}
+render_text_blended_wrapped :: proc(font: ^TTF_Font, text: string, length: c.size_t, fg: sdl.Color, wrap_width: c.int) -> ^sdl.Surface {
+	return RenderText_Blended_Wrapped(font, raw_data(transmute([]byte)text), length, fg, wrap_width)
+}
+
+
+// odinfmt: enable
 
