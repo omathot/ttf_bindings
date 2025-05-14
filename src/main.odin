@@ -13,7 +13,6 @@ Uint32 :: u32
 
 // odinfmt: disable
 TTF_Font :: struct {}
-//odinfmt: enable
 
 FontStyleFlags :: distinct bit_set[FontStyleFlag;Uint32]
 FontStyleFlag :: enum Uint32 {
@@ -31,10 +30,10 @@ STYLE_STRIKETHROUGH :: FontStyleFlags{.STRIKETHROUGH}
 
 HintingFlags :: enum c.int {
 	INVALID = -1,
-	NORMAL, /**< Normal hinting applies standard grid-fitting. */
-	LIGHT, /**< Light hinting applies subtle adjustments to improve rendering. */
-	MONO, /**< Monochrome hinting adjusts the font for better rendering at lower resolutions. */
-	NONE, /**< No hinting, the font is rendered without any grid-fitting. */
+	NORMAL,			/**< Normal hinting applies standard grid-fitting. */
+	LIGHT,			/**< Light hinting applies subtle adjustments to improve rendering. */
+	MONO,			/**< Monochrome hinting adjusts the font for better rendering at lower resolutions. */
+	NONE,			/**< No hinting, the font is rendered without any grid-fitting. */
 	LIGHT_SUBPIXEL, /**< Light hinting with subpixel rendering for more precise font edges. */
 }
 
@@ -47,18 +46,19 @@ HorizontalAlignment :: enum c.int {
 
 Direction :: enum c.int {
 	TTF_DIRECTION_INVALID = 0,
-	TTF_DIRECTION_LTR = 4, /**< Left to Right */
-	TTF_DIRECTION_RTL, /**< Right to Left */
-	TTF_DIRECTION_TTB, /**< Top to Bottom */
-	TTF_DIRECTION_BTT, /**< Bottom to Top */
+	TTF_DIRECTION_LTR = 4,	/**< Left to Right */
+	TTF_DIRECTION_RTL,		/**< Right to Left */
+	TTF_DIRECTION_TTB,		/**< Top to Bottom */
+	TTF_DIRECTION_BTT,		/**< Bottom to Top */
 }
 
 ImageType :: enum c.int {
 	TTF_IMAGE_INVALID,
-	TTF_IMAGE_ALPHA, /**< The color channels are white */
-	TTF_IMAGE_COLOR, /**< The color channels have image data */
-	TTF_IMAGE_SDF, /**< The alpha channel has signed distance field information */
+	TTF_IMAGE_ALPHA,	/**< The color channels are white */
+	TTF_IMAGE_COLOR,	/**< The color channels have image data */
+	TTF_IMAGE_SDF,		/**< The alpha channel has signed distance field information */
 }
+// odinfmt: enable
 
 @(default_calling_convention = "c", link_prefix = "TTF_")
 foreign lib {
@@ -120,5 +120,15 @@ foreign lib {
 	GetGlyphMetrics :: proc(font: ^TTF_Font, ch: Uint32, minxx, maxx, miny, maxy, advance: ^c.int) -> bool ---
 	GetGlyphKerning :: proc(font: ^TTF_Font, previous_ch: Uint32, ch: Uint32, kerning: ^c.int) -> bool ---
 	GetStringSize :: proc(font: ^TTF_Font, text: [^]byte, length: c.size_t, w, h: ^c.int) -> bool ---
+	GetStringSizeWrapped :: proc(font: ^TTF_Font, text: [^]byte, length: c.size_t, wrap_width: c.int, w, h: ^c.int) -> bool ---
+	MeasureString :: proc(font: ^TTF_Font, text: [^]byte, length: c.size_t, max_width: c.int, measured_width: ^c.int, measured_length: ^c.size_t) -> bool ---
+	RenderText_Solid :: proc(font: ^TTF_Font, text: [^]byte, length: c.size_t, fg: sdl.Color) -> ^sdl.Surface ---
+	RenderText_Solid_Wrapped :: proc(font: ^TTF_Font, text: [^]byte, length: c.size_t, fg: sdl.Color, wrapLength: c.int) -> ^sdl.Surface ---
+	RenderGlyph_Solid :: proc(font: ^TTF_Font, ch: Uint32, fg: sdl.Color) -> ^sdl.Surface ---
+	RenderText_Shaded :: proc(font: ^TTF_Font, text: [^]byte, length: c.size_t, fg, bg: sdl.Color) -> ^sdl.Surface ---
+	RenderText_Shaded_Wrapped :: proc(font: ^TTF_Font, text: [^]byte, length: c.size_t, fg, bg: sdl.Color, wrap_width: c.int) -> ^sdl.Surface ---
+	RenderGlyph_Shaded :: proc(font: ^TTF_Font, ch: Uint32, fg, bg: sdl.Color) -> ^sdl.Surface ---
+	RenderText_Blended :: proc(font: ^TTF_Font, text: [^]byte, length: c.size_t, fg: sdl.Color) -> ^sdl.Surface ---
+	RenderText_Blended_wrapped :: proc(font: ^TTF_Font, text: [^]byte, length: c.size_t, fg: sdl.Color, wrap_width: c.int) -> ^sdl.Surface ---
 }
 
