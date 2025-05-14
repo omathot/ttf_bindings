@@ -100,5 +100,11 @@ main :: proc() {
 		return
 	}
 	assert(solid_text != nil)
+
+	engine := ttf.CreateSurfaceTextEngine()
+	if engine == nil {
+		fmt.println("failed to create text engine")
+		return
+	}
 }
 

@@ -58,6 +58,60 @@ ImageType :: enum c.int {
 	TTF_IMAGE_COLOR,	/**< The color channels have image data */
 	TTF_IMAGE_SDF,		/**< The alpha channel has signed distance field information */
 }
+
+
+// 
+// text engine
+// 
+TextData :: struct{}
+Text :: struct {
+	text: cstring,		/**< A copy of the UTF-8 string that this text object represents, useful for layout, debugging and retrieving substring text. This is updated when the text object is modified and will be freed automatically when the object is destroyed. */
+	num_lines: c.int,	/**< The number of lines in the text, 0 if it's empty */
+
+	refcount: c.int,	/**< Application reference count, used when freeing surface */
+	internal: TextData,	/**< Private */
+}
+
+EngineCreateText :: #type proc "c" (userdata: rawptr, text: ^Text)
+EngineDestroyText :: #type proc "c" (userdata: rawptr, text: ^Text)
+TextEngine :: struct {
+	version: Uint32,	/**< The version of this interface */
+	userdata: rawptr,	/**< User data pointer passed to callbacks */
+
+	/* Create a text representation from draw instructions.
+	*
+	* All fields of `text` except `internal->engine_text` will already be filled out.
+	*
+	* This function should set the `internal->engine_text` field to a non-NULL value.
+	*
+	* \param userdata the userdata pointer in this interface.
+	* \param text the text object being created.
+	*/
+	create_text: EngineCreateText,
+	/**
+	* Destroy a text representation.
+	*/
+	destroy_text: EngineDestroyText,
+}
+
+GPUAtlasDrawSequence :: struct {
+	atlas_texture: ^sdl.GPUTexture,
+	xy: ^sdl.FPoint,
+	uv: ^sdl.FPoint,
+	num_vertices: c.int,
+	indices: ^c.int,
+	num_indices: c.int,
+	image_type: ImageType,
+
+	next: ^GPUAtlasDrawSequence,
+}
+
+GPUTextEngineWinding :: enum c.int {
+	TTF_GPU_TEXTENGINE_WINDING_INVALID = -1,
+	TTF_GPU_TEXTENGINE_WINDING_CLOCKWISE,
+	TTF_GPU_TEXTENGINE_WINDING_COUNTER_CLOCKWISE
+}
+
 // odinfmt: enable
 
 @(default_calling_convention = "c", link_prefix = "TTF_")
@@ -130,10 +184,30 @@ foreign lib {
 	RenderGlyph_Shaded :: proc(font: ^TTF_Font, ch: Uint32, fg, bg: sdl.Color) -> ^sdl.Surface ---
 	RenderText_Blended :: proc(font: ^TTF_Font, text: [^]byte, length: c.size_t, fg: sdl.Color) -> ^sdl.Surface ---
 	RenderText_Blended_Wrapped :: proc(font: ^TTF_Font, text: [^]byte, length: c.size_t, fg: sdl.Color, wrap_width: c.int) -> ^sdl.Surface ---
+	RenderGlyph_Blended :: proc(font: ^TTF_Font, ch: Uint32, fg: sdl.Color) -> ^sdl.Surface ---
+	RenderText_LCD :: proc(font: ^TTF_Font, text: [^]byte, length: c.size_t, fg, bg: sdl.Color) -> ^sdl.Surface ---
+	RenderText_LCD_Wrapped :: proc(font: ^TTF_Font, text: [^]byte, length: c.size_t, fg, bg: sdl.Color, wrap_width: c.int) -> ^sdl.Surface ---
+	RenderGlyph_LCD :: proc(font: ^TTF_Font, ch: Uint32, fg, bg: sdl.Color) -> ^sdl.Surface ---
+	CreateSurfaceTextEngine :: proc() -> ^TextEngine ---
+	DrawSurfaceText :: proc(text: ^Text, x, y: c.int, surface: ^sdl.Surface) -> bool ---
+	DestroySurfaceTextEngine :: proc(engine: ^TextEngine) ---
+	CreateRendererTextEngine :: proc(renderer: ^sdl.Renderer) -> ^TextEngine ---
+	CreateRendererTextEngineWithProperties :: proc(props: sdl.PropertiesID) -> ^TextEngine ---
+	DrawRendererText :: proc(text: ^Text, y, x: f32) -> bool ---
+	DestroyRendererTextEngine :: proc(engine: ^TextEngine) ---
+	CreateGPUTextEngine :: proc(device: ^sdl.GPUDevice) -> ^TextEngine ---
+	CreateGPUTextEngineWithProperties :: proc(props: sdl.PropertiesID) -> ^TextEngine ---
+	GetGPUTextDrawData :: proc(text: ^Text) -> GPUAtlasDrawSequence ---
+	DestroyGPUTextEngine :: proc(engine: ^TextEngine) ---
+	SetGPUTextEngineWinding :: proc(engine: ^TextEngine, winding: GPUTextEngineWinding) ---
+	GetGPUTextEngineWinding :: proc(engine: ^TextEngine) -> GPUTextEngineWinding ---
+	CreateText :: proc(engine: ^TextEngine, font: ^TTF_Font, text: [^]byte, length: c.size_t) -> ^Text ---
+	GetTextProperties :: proc(text: ^Text) -> sdl.PropertiesID ---
 }
 
 
 // 
+
 
 
 // odinfmt: disable
@@ -158,7 +232,26 @@ render_text_blended :: proc(font: ^TTF_Font, text: string, length: c.size_t, fg:
 render_text_blended_wrapped :: proc(font: ^TTF_Font, text: string, length: c.size_t, fg: sdl.Color, wrap_width: c.int) -> ^sdl.Surface {
 	return RenderText_Blended_Wrapped(font, raw_data(transmute([]byte)text), length, fg, wrap_width)
 }
-
-
+render_text_lcd :: proc(font: ^TTF_Font, text: string, length: c.size_t, fg, bg: sdl.Color) -> ^sdl.Surface {
+	return RenderText_LCD(font, raw_data(transmute([]byte)text), length, fg, bg)
+}
+render_text_lcd_wrapped :: proc(font: ^TTF_Font, text: string, length: c.size_t, fg, bg: sdl.Color, wrap_width: c.int) -> ^sdl.Surface {
+	return RenderText_LCD_Wrapped(font, raw_data(transmute([]byte)text), length, fg, bg, wrap_width)
+}
+get_string_size :: proc(font: ^TTF_Font, text: string, length: c.size_t, w, h: ^c.int) -> bool {
+	return GetStringSize(font, raw_data(transmute([]byte)text), length, w, h)
+}
+get_string_size_wrapped :: proc(font: ^TTF_Font, text: string, length: c.size_t, wrap_width: c.int, w, h: ^c.int) -> bool {
+	return GetStringSizeWrapped(font, raw_data(transmute([]byte)text), length, wrap_width, w, h)
+}
+measure_string :: proc(font: ^TTF_Font, text: string, length: c.size_t, max_width: c.int, measured_width: ^c.int, measured_length: ^c.size_t) -> bool {
+	return MeasureString(font, raw_data(transmute([]byte)text), length, max_width, measured_width, measured_length)
+}
+set_font_language :: proc(font: ^TTF_Font, language_bcp47: string) {
+	SetFontLanguage(font, raw_data(transmute([]byte)language_bcp47))
+}
+create_text :: proc(engine: ^TextEngine, font: ^TTF_Font, text: string, length: c.size_t) -> ^Text {
+	return CreateText(engine, font, raw_data(transmute([]byte)text), length)
+}
 // odinfmt: enable
 
